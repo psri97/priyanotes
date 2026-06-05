@@ -390,3 +390,666 @@ I use remote state for collaboration and handle drift using plan and apply."
 - Avoid manual infra changes  
 - Use modules for reuse  
 - Keep state secure  
+
+
+# Terraform Quick Notes
+
+> Simple reference notes for future use.
+
+---
+
+# Terraform Workspaces
+
+Terraform workspaces allow you to manage multiple environments (e.g., dev, test, prod) using the same Terraform configuration.
+
+## List Existing Workspaces
+
+```bash
+terraform workspace list
+```
+
+Displays all available workspaces.
+
+---
+
+## Create a New Workspace
+
+```bash
+terraform workspace new <workspace-name>
+```
+
+Example:
+
+```bash
+terraform workspace new dev
+```
+
+Creates and switches to the new workspace.
+
+---
+
+## Switch Workspace
+
+```bash
+terraform workspace select <workspace-name>
+```
+
+Example:
+
+```bash
+terraform workspace select prod
+```
+
+Switches Terraform to the specified workspace.
+
+---
+
+## Delete Workspace
+
+```bash
+terraform workspace delete <workspace-name>
+```
+
+Example:
+
+```bash
+terraform workspace delete test
+```
+
+Deletes the workspace.
+
+> Note: You cannot delete the currently selected workspace.
+
+---
+
+# Using Variable Files (.tfvars)
+
+Variable files help provide environment-specific values.
+
+Example structure:
+
+```text
+dev.tfvars
+prod.tfvars
+```
+
+## Terraform Plan
+
+```bash
+terraform plan --var-file="dev.tfvars"
+```
+
+Uses values from `dev.tfvars` while generating the execution plan.
+
+---
+
+## Terraform Apply
+
+```bash
+terraform apply --var-file="dev.tfvars"
+```
+
+Creates/updates resources using values from the variable file.
+
+---
+
+## Terraform Destroy
+
+```bash
+terraform destroy --var-file="dev.tfvars"
+```
+
+Destroys resources using values from the variable file.
+
+---
+
+# Terraform Debug Logging
+
+Used for troubleshooting Terraform issues.
+
+## Enable Logging
+
+```powershell
+$env:TF_LOG="TRACE"
+```
+
+TRACE provides detailed logs.
+
+Other levels:
+
+- TRACE
+- DEBUG
+- INFO
+- WARN
+- ERROR
+
+---
+
+## Disable Logging
+
+```powershell
+$env:TF_LOG=""
+```
+
+---
+
+## Save Logs to File
+
+```powershell
+$env:TF_LOG_PATH="terraform.log"
+```
+
+Terraform logs will be written to:
+
+```text
+terraform.log
+```
+
+---
+
+## Disable Log File
+
+```powershell
+$env:TF_LOG_PATH=""
+```
+
+---
+
+# Terraform Data Types
+
+## String
+
+Stores text values.
+
+```hcl
+name = "terraform"
+```
+
+---
+
+## List
+
+- Ordered collection
+- Supports indexing
+- Allows duplicate values
+
+```hcl
+users = ["john", "alice", "john"]
+```
+
+Access element:
+
+```hcl
+users[0]
+```
+
+Output:
+
+```text
+john
+```
+
+---
+
+## Set
+
+- Unordered collection
+- Does not allow duplicate values
+- Cannot access by index
+
+```hcl
+users = toset(["john", "alice", "john"])
+```
+
+Output:
+
+```text
+john
+alice
+```
+
+(Duplicate removed)
+
+---
+
+## Map
+
+- Key-value pairs
+- Unordered collection
+
+```hcl
+user = {
+  name = "john"
+  age  = 25
+}
+```
+
+Access value:
+
+```hcl
+user["name"]
+```
+
+Output:
+
+```text
+john
+```
+
+---
+
+# Count
+
+Used to create multiple identical resources.
+
+```hcl
+resource "aws_instance" "server" {
+  count = 3
+}
+```
+
+Creates:
+
+```text
+server[0]
+server[1]
+server[2]
+```
+
+---
+
+# count.index
+
+Provides the current index value inside a resource using `count`.
+
+```hcl
+resource "aws_instance" "server" {
+  count = 3
+
+  tags = {
+    Name = "server-${count.index}"
+  }
+}
+```
+
+Output:
+
+```text
+server-0
+server-1
+server-2
+```
+
+---
+
+# Length Function
+
+Returns the number of elements.
+
+```hcl
+length(["a", "b", "c"])
+```
+
+Output:
+
+```text
+3
+```
+
+---
+
+# Element Function
+
+Returns a value from a list based on index.
+
+```hcl
+element(["dev", "test", "prod"], 1)
+```
+
+Output:
+
+```text
+test
+```
+
+---
+
+# Conditional Expressions
+
+Syntax:
+
+```hcl
+condition ? true_value : false_value
+```
+
+Example:
+
+```hcl
+environment == "prod" ? "large" : "small"
+```
+
+Output:
+
+```text
+large
+```
+
+if environment is prod, otherwise:
+
+```text
+small
+```
+
+---
+
+# Local Variables
+
+Used to store reusable values within Terraform.
+
+```hcl
+locals {
+  project_name = "myapp"
+}
+```
+
+Usage:
+
+```hcl
+tags = {
+  Name = local.project_name
+}
+```
+
+Benefits:
+
+- Reusable
+- Cleaner code
+- Easy maintenance
+
+---
+
+# for_each
+
+Used to create resources for multiple unique values.
+
+```hcl
+resource "aws_s3_bucket" "bucket" {
+  for_each = toset(["dev", "test", "prod"])
+
+  bucket = "app-${each.key}"
+}
+```
+
+Creates:
+
+```text
+app-dev
+app-test
+app-prod
+```
+
+---
+
+# Dynamic Blocks
+
+Used to create nested blocks dynamically.
+
+Example:
+
+```hcl
+dynamic "ingress" {
+  for_each = var.ports
+
+  content {
+    from_port = ingress.value
+    to_port   = ingress.value
+    protocol  = "tcp"
+  }
+}
+```
+
+Useful when the number of nested blocks is not fixed.
+
+---
+
+# Join Function
+
+Combines list elements into a single string.
+
+```hcl
+join(",", ["dev", "test", "prod"])
+```
+
+Output:
+
+```text
+dev,test,prod
+```
+
+---
+
+# Distinct Function
+
+Removes duplicate values from a list.
+
+```hcl
+distinct(["dev", "test", "dev"])
+```
+
+Output:
+
+```text
+["dev", "test"]
+```
+
+---
+
+# Map Function Usage
+
+Create a map:
+
+```hcl
+locals {
+  instance_types = {
+    dev  = "t2.micro"
+    prod = "t3.large"
+  }
+}
+```
+
+Access value:
+
+```hcl
+local.instance_types["dev"]
+```
+
+Output:
+
+```text
+t2.micro
+```
+
+---
+
+# Terraform Import
+
+Used to bring existing infrastructure under Terraform management.
+
+Syntax:
+
+```bash
+terraform import <resource_type>.<resource_name> <resource_id>
+```
+
+Example:
+
+```bash
+terraform import aws_s3_bucket.mybucket my-existing-bucket
+```
+
+Important:
+
+- Imports resource into Terraform state.
+- Does not automatically generate Terraform code.
+- Resource configuration must still be written manually.
+
+---
+
+# Provisioners
+
+Provisioners execute scripts or commands during resource creation or destruction.
+
+> Use provisioners only when absolutely necessary.
+
+---
+
+## File Provisioner
+
+Copies files from local machine to remote server.
+
+```hcl
+provisioner "file" {
+  source      = "app.sh"
+  destination = "/tmp/app.sh"
+}
+```
+
+---
+
+## Remote Exec Provisioner
+
+Runs commands on the remote server.
+
+```hcl
+provisioner "remote-exec" {
+  inline = [
+    "sudo yum update -y",
+    "sudo systemctl restart nginx"
+  ]
+}
+```
+
+---
+
+## Local Exec Provisioner
+
+Runs commands on the machine where Terraform is executed.
+
+```hcl
+provisioner "local-exec" {
+  command = "echo Resource Created"
+}
+```
+
+---
+
+# null_resource
+
+A resource that does not create any infrastructure.
+
+Useful for:
+
+- Running scripts
+- Triggering provisioners
+- Automation tasks
+
+Example:
+
+```hcl
+resource "null_resource" "example" {
+
+  provisioner "local-exec" {
+    command = "echo Hello Terraform"
+  }
+}
+```
+
+---
+
+# Terraform Taint
+
+Marks a resource for recreation.
+
+Syntax:
+
+```bash
+terraform taint <resource-address>
+```
+
+Example:
+
+```bash
+terraform taint aws_instance.web
+```
+
+During next apply:
+
+```bash
+terraform apply
+```
+
+Terraform will:
+
+1. Destroy the existing resource.
+2. Recreate it.
+
+---
+
+## Remove Taint
+
+```bash
+terraform untaint <resource-address>
+```
+
+Example:
+
+```bash
+terraform untaint aws_instance.web
+```
+
+---
+
+# Quick Comparison
+
+| Type | Ordered | Duplicates Allowed | Access By Index |
+|--------|---------|-------------------|----------------|
+| String | N/A | N/A | N/A |
+| List | ✅ Yes | ✅ Yes | ✅ Yes |
+| Set | ❌ No | ❌ No | ❌ No |
+| Map | ❌ No | Keys must be unique | Access by Key |
+
+---
+
+# Commonly Used Terraform Functions
+
+| Function | Purpose |
+|-----------|----------|
+| length() | Count elements |
+| element() | Get item by index |
+| join() | Combine list into string |
+| distinct() | Remove duplicates |
+| toset() | Convert list to set |
+| tomap() | Convert value to map |
+
+---
+
+# Important Commands Cheat Sheet
+
+```bash
+terraform workspace list
+terraform workspace new dev
+terraform workspace select dev
+terraform workspace delete dev
+
+terraform plan --var-file="dev.tfvars"
+terraform apply --var-file="dev.tfvars"
+terraform destroy --var-file="dev.tfvars"
+
+terraform import RESOURCE_NAME RESOURCE_ID
+
+terraform taint RESOURCE_NAME
+terraform untaint RESOURCE_NAME
+```
+
+---
+**Tip:** Prefer `for_each` when working with unique items (maps/sets) and `count` when creating a fixed number of similar resources.
